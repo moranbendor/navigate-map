@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+  <meta charset="UTF-8">
+  <title>ניווט לשטח</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      direction: rtl;
+      margin-top: 50px;
+    }
+    input, select, button {
+      padding: 10px;
+      margin: 10px;
+      font-size: 1.2em;
+      width: 80%;
+      max-width: 400px;
+    }
+  </style>
+</head>
+<body>
+  <h2>בחר שטח לניווט</h2>
+  <input type="text" id="searchInput" placeholder="הקלד שם לחיפוש...">
+  <br>
+  <select id="locationSelect" size="8">
+    <!-- רשימת יעדים תיכנס כאן -->
+  </select>
+  <br>
+  <button onclick="navigate()">נווט בגוגל מפות</button>
+
+  <script>
+    const csvUrl = 'https://docs.google.com/spreadsheets/d/1VZkWesEHADipB-1fActYG9KHHR9TKt-p3SR-DlxySq4/gviz/tq?tqx=out:csv';
+    const select = document.getElementById('locationSelect');
+    const input = document.getElementById('searchInput');
+    const locations = {};
+
+    // פונקציית ניקוי טקסט ממרכאות ורווחים
+    function clean(str) {
+      return str.replace(/^"|"$/g, '').trim();
+    }
+
+    // טעינת הנתונים
+    fetch(csvUrl)
+      .then(response => response.text())
+      .then(data => {
+        const rows = data.trim().split('\n').slice(1);
+        rows.forEach(row => {
+          const [nameRaw, migrash, lonRaw, latRaw] = row.split(',');
+          const name = clean(nameRaw);
+          const lat = clean(latRaw);
+          const lon = clean(lonRaw);
+          locations[name] = { lat, lon };
+        });
+        updateOptions();
+      });
+
+    // עדכון הרשימה בהתאם למה שמוקלד
+    input.addEventListener('input', updateOptions);
+
+    function updateOptions() {
+      const filter = input.value.trim().toLowerCase();
+      select.innerHTML = '';
+      const filtered = Object.keys(locations).filter(name =>
+        name.toLowerCase().includes(filter)
+      );
+
+      if (filtered.length === 0) {
+        const opt = document.createElement('option');
+        opt.textContent = 'לא נמצאו תוצאות';
+        opt.disabled = true;
+        select.appendChild(opt);
+        return;
+      }
+
+      filtered.forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        select.appendChild(option);
+      });
+    }
+
+    function navigate() {
+      const selected = select.value;
+      if (!locations[selected]) return alert('בחר יעד תקין');
+      const { lat, lon } = locations[selected];
+      const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+      window.open(url, '_blank');
+    }
+  </script>
+</body>
+</html>
